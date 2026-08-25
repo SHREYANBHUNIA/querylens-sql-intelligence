@@ -20,3 +20,4 @@
 - [x] Fix duplicate React keys in the expensive-operator findings list and cover repeated finding titles.
 - [x] Create a private GitHub repository and push the current validated QueryLens source for external deployment.
 - [x] Rewrite all QueryLens Git commit authors as CSE - 148 - SHREYAN BHUNIA using shreyan.bhunia.k@gmail.com and update the private GitHub history.
+- [x] Fix the Docker build failure caused by an XGBoost version that is incompatible with the container’s Python 3.11 runtime, then push the deployable repair to GitHub.

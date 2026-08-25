@@ -23,7 +23,7 @@ Run validation with `pnpm check`, `pnpm test`, and `pnpm build`.
 
 ## Docker packaging
 
-The root `Dockerfile` creates one deployable image that includes Node.js, Python 3, SQLGlot, Scikit-learn, XGBoost, the React production build, and the Express/tRPC server. It listens through the managed runtime port and starts with `node dist/index.js`.
+The root `Dockerfile` creates one deployable image that includes Node.js, Python 3.11, SQLGlot, Scikit-learn, XGBoost 3.2, the React production build, and the Express/tRPC server. XGBoost is pinned to 3.2 because the 3.4 line requires Python 3.12 or later, while the supported `node:22-slim` image supplies Python 3.11. The container listens through the managed runtime port and starts with `node dist/index.js`.
 
 ## Analysis boundaries
 
