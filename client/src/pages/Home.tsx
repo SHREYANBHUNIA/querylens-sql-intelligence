@@ -1,33 +1,74 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
+import { PlanGraph } from "@/components/PlanGraph";
+import { PerformanceTrend } from "@/components/PerformanceTrend";
+import { trpc } from "@/lib/trpc";
+import { AlertTriangle, ArrowRight, BarChart3, CheckCircle2, ChevronRight, Database, Gauge, History, Loader2, Network, Play, Sparkles, WandSparkles } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Workflow, Frontend Best Practices, Design Guide and Common Pitfalls
- */
+const starterQuery = `SELECT o.id, o.created_at, c.email, p.status
+FROM orders o
+JOIN customers c ON c.id = o.customer_id
+LEFT JOIN payments p ON p.order_id = o.id
+WHERE o.created_at >= CURRENT_DATE - INTERVAL '30 days'
+  AND o.status = 'completed'
+ORDER BY o.created_at DESC;`;
+
+const severityStyle = { critical: "border-rose-300/30 bg-rose-400/10 text-rose-100", warning: "border-orange-300/30 bg-orange-300/10 text-orange-100", info: "border-violet-300/30 bg-violet-400/10 text-violet-100" };
+
 export default function Home() {
-  // The useAuth hook provides authentication state.
-  // To implement login/logout, call logout(), or start login from an event
-  // handler: onClick={() => startLogin()} (imported from "@/const"). Never call
-  // startLogin() during render (no href={startLogin()}) — it mints a one-time
-  // nonce cookie and must run only at the moment of navigation.
-  let { user, loading, error, isAuthenticated, logout } = useAuth();
-
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+  const [sql, setSql] = useState(starterQuery);
+  const [analysis, setAnalysis] = useState<Awaited<ReturnType<typeof trpc.queryLens.analyze.useMutation>>["data"]>();
+  const utils = trpc.useUtils();
+  const analyzeMutation = trpc.queryLens.analyze.useMutation({
+    onSuccess: result => { setAnalysis(result); utils.queryLens.history.invalidate(); toast.success("Plan analyzed", { description: "QueryLens generated an estimated PostgreSQL plan and optimization path." }); },
+    onError: error => toast.error("Analysis unavailable", { description: error.message }),
+  });
+  const history = trpc.queryLens.history.useQuery({ limit: 24 });
+  const handleAnalyze = () => analyzeMutation.mutate({ sql });
+  const historyRows = history.data ?? [];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
+    <div className="mesh-background min-h-screen overflow-x-hidden text-white">
+      <div className="mesh-orb pointer-events-none fixed inset-0 opacity-80" />
+      <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
+        <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-pink-400 via-fuchsia-500 to-violet-500 shadow-[0_0_32px_rgba(244,63,161,.42)]"><Sparkles className="h-5 w-5" /></div><div><p className="text-base font-extrabold tracking-tight">QueryLens</p><p className="text-[10px] font-semibold uppercase tracking-[0.21em] text-white/45">Query intelligence</p></div></div>
+        <div className="hidden items-center gap-6 text-xs font-semibold tracking-wide text-white/60 md:flex"><span>PostgreSQL ready</span><span>SQLGlot parser</span><span>Explainable AI</span></div>
+        <Badge className="border border-white/15 bg-white/10 px-3 py-1 text-[11px] text-white hover:bg-white/10">v0.1 · Analyzer</Badge>
+      </header>
+
+      <main className="relative z-10 pb-20">
+        <section className="accent-grid mx-auto max-w-5xl px-5 pb-8 pt-14 text-center sm:px-8 sm:pt-20">
+          <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.17em] text-pink-100"><WandSparkles className="h-3.5 w-3.5 text-orange-200" /> From query to insight in one pass</div>
+          <h1 className="mx-auto max-w-4xl text-4xl font-extrabold leading-[0.98] tracking-[-0.055em] drop-shadow-[0_8px_24px_rgba(0,0,0,.36)] sm:text-6xl">Make every query earn its <span className="bg-gradient-to-r from-pink-300 via-orange-200 to-violet-200 bg-clip-text text-transparent">milliseconds.</span></h1>
+          <p className="mx-auto mt-6 max-w-2xl text-xs font-medium uppercase leading-6 tracking-[0.2em] text-white/60 sm:text-sm">Analyze PostgreSQL query shape, anticipate cost, and surface the fastest path forward.</p>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-5 sm:px-8">
+          <div className="glass-card overflow-hidden rounded-[28px] border border-white/15">
+            <div className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-8 w-8 place-items-center rounded-lg bg-pink-400/15 text-pink-200"><Database className="h-4 w-4" /></div><div><p className="text-sm font-bold">Query workspace</p><p className="text-xs text-white/45">Read-only PostgreSQL analysis · no source database required for estimates</p></div></div><Badge variant="outline" className="w-fit border-white/15 bg-white/5 text-white/70">SQLGlot · XGBoost</Badge></div>
+            <div className="grid lg:grid-cols-[1fr_250px]">
+              <div className="p-4 sm:p-5"><textarea value={sql} onChange={event => setSql(event.target.value)} spellCheck={false} aria-label="SQL query input" className="font-mono min-h-[265px] w-full resize-y rounded-2xl border border-white/10 bg-[#080817]/75 p-5 text-[13px] leading-6 text-violet-100 outline-none transition focus:border-pink-300/70 focus:ring-4 focus:ring-pink-400/10" /><div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-white/45">QueryLens accepts <span className="font-mono text-white/70">SELECT</span>, <span className="font-mono text-white/70">WITH</span>, and <span className="font-mono text-white/70">EXPLAIN</span>.</p><div className="flex gap-2"><Button onClick={() => { setSql(starterQuery); setAnalysis(undefined); }} variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white">Reset sample</Button><Button onClick={handleAnalyze} disabled={analyzeMutation.isPending} className="bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-500 px-5 font-bold text-white shadow-[0_12px_28px_rgba(190,24,154,.32)] hover:brightness-110">{analyzeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 fill-current" />}Analyze query</Button></div></div></div>
+              <aside className="border-t border-white/10 bg-black/10 p-5 lg:border-l lg:border-t-0"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/40">Analysis pipeline</p><div className="mt-5 space-y-4">{[["Parse", "SQL structure & relations"], ["Plan", "Costed PostgreSQL operators"], ["Optimize", "Index & join signals"], ["Benchmark", "Before / after estimate"]].map(([label, detail], index) => <div className="flex gap-3" key={label}><div className="relative flex flex-col items-center"><div className="grid h-7 w-7 place-items-center rounded-full border border-white/20 bg-white/10 text-[11px] font-bold text-pink-100">{index + 1}</div>{index < 3 && <span className="mt-1 h-5 border-l border-dashed border-white/20" />}</div><div><p className="text-sm font-semibold">{label}</p><p className="text-xs leading-5 text-white/45">{detail}</p></div></div>)}</div></aside>
+            </div>
+          </div>
+        </section>
+
+        {!analysis && <section className="mx-auto max-w-5xl px-5 py-14 text-center sm:px-8"><div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-white/15 bg-white/10 text-violet-200"><Network className="h-6 w-6" /></div><h2 className="mt-5 text-xl font-bold">Your query plan will resolve here.</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/55">Run the sample query or paste a PostgreSQL statement to inspect estimated operators, compare an optimized path, and preserve an analysis in history.</p></section>}
+
+        {analysis && <section className="mx-auto max-w-7xl space-y-6 px-5 pt-7 sm:px-8">
+          <div className="grid gap-4 md:grid-cols-4"><Metric icon={<Gauge />} label="Complexity" value={`${analysis.complexity.label} · ${analysis.complexity.score}`} detail={`${analysis.queryShape.tables.length} tables · ${analysis.queryShape.joinCount} joins`} gradient="from-pink-500/25 to-pink-300/5" /><Metric icon={<BarChart3 />} label="Plan cost" value={analysis.baselinePlan.totalCost.toLocaleString()} detail="baseline estimate" gradient="from-orange-400/25 to-orange-200/5" /><Metric icon={<ArrowRight />} label="Cost reduction" value={`${analysis.benchmark.costReductionPercent}%`} detail="optimized plan estimate" gradient="from-violet-500/25 to-violet-300/5" /><Metric icon={<CheckCircle2 />} label="Latency delta" value={`${analysis.benchmark.latencyReductionPercent}%`} detail={`${analysis.benchmark.baselineLatencyMs}ms → ${analysis.benchmark.optimizedLatencyMs}ms`} gradient="from-blue-500/25 to-blue-300/5" /></div>
+          <div className="glass-card rounded-[28px] border border-white/15 p-5 sm:p-6"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-pink-200">Plan comparison</p><h2 className="mt-1 text-2xl font-bold tracking-tight">Baseline vs. optimized path</h2></div><div className="flex flex-wrap gap-2 text-xs"><Badge className="border border-white/10 bg-white/5 text-white/65">{analysis.benchmark.mode} benchmark</Badge><Badge className="border border-rose-300/20 bg-rose-400/10 text-rose-100">Baseline · {analysis.baselinePlan.totalCost.toLocaleString()}</Badge><Badge className="border border-violet-300/20 bg-violet-400/10 text-violet-100">Optimized · {analysis.optimizedPlan.totalCost.toLocaleString()}</Badge></div></div><div className="mt-6 grid gap-4 xl:grid-cols-2"><PlanGraph title="Baseline operators" nodes={analysis.baselinePlan.nodes} accent="pink" /><PlanGraph title="Optimized operators" nodes={analysis.optimizedPlan.nodes} accent="violet" /></div><p className="mt-4 text-xs leading-5 text-white/45">{analysis.benchmark.method}</p></div>
+          <div className="grid gap-6 lg:grid-cols-[1.08fr_.92fr]"><div className="glass-card rounded-[28px] border border-white/15 p-5 sm:p-6"><div className="flex items-center justify-between"><div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-100">Priority queue</p><h2 className="mt-1 text-2xl font-bold tracking-tight">Actions with measurable leverage</h2></div><Badge className="border border-white/10 bg-white/5 text-white/65">{analysis.recommendations.length} findings</Badge></div><div className="mt-5 space-y-3">{analysis.recommendations.map(item => <article className="rounded-2xl border border-white/10 bg-black/15 p-4" key={`${item.priority}-${item.title}`}><div className="flex gap-3"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/10 text-xs font-bold text-white/75">{item.priority}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold">{item.title}</h3><Badge className={severityStyle[item.severity]}>{item.severity} · {item.estimatedImpact}%</Badge></div><p className="mt-2 text-sm leading-6 text-white/55">{item.detail}</p><code className="mt-3 block overflow-x-auto rounded-lg border border-white/10 bg-[#080817] px-3 py-2 font-mono text-[11px] leading-5 text-pink-100">{item.action}</code></div></div></article>)}</div></div>
+          <div className="glass-card rounded-[28px] border border-white/15 p-5 sm:p-6"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-violet-200">Query shape</p><h2 className="mt-1 text-2xl font-bold tracking-tight">What the parser found</h2><div className="mt-5 space-y-4"><ShapeRow label="Relations" value={analysis.queryShape.tables.length ? analysis.queryShape.tables.join(", ") : "No base relations detected"} /><ShapeRow label="Join operators" value={`${analysis.queryShape.joinCount} detected`} /><ShapeRow label="Predicate fields" value={analysis.queryShape.filterColumns.length ? analysis.queryShape.filterColumns.map(item => `${item.table}.${item.column}`).join(", ") : "No WHERE predicate detected"} /><ShapeRow label="Planner model" value={analysis.model} /></div><div className="mt-6 border-t border-white/10 pt-5"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-100">Operator risk</p><div className="mt-3 space-y-2">{analysis.operatorFindings.map(item => <div className="rounded-xl border border-white/10 bg-black/15 p-3" key={item.title}><div className="flex items-center justify-between gap-2"><p className="text-xs font-bold text-white/85">{item.title}</p><span className="text-[10px] font-bold text-orange-100">{item.estimatedImpact}% impact</span></div><p className="mt-1 text-[11px] leading-5 text-white/50">{item.detail}</p></div>)}</div></div><div className="mt-6 rounded-2xl border border-violet-300/15 bg-violet-400/10 p-4"><p className="text-xs font-bold text-violet-100">Normalized PostgreSQL</p><pre className="font-mono mt-3 max-h-44 overflow-auto whitespace-pre-wrap text-[11px] leading-5 text-white/65">{analysis.normalizedSql}</pre></div></div></div>
+        </section>}
+
+        <section className="mx-auto max-w-7xl px-5 pt-10 sm:px-8"><div className="glass-card rounded-[28px] border border-white/15 p-5 sm:p-6"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-200">Persistent history</p><h2 className="mt-1 text-2xl font-bold tracking-tight">Performance trend</h2></div><div className="flex items-center gap-2 text-xs text-white/45"><History className="h-4 w-4" /> Last {historyRows.length} recorded analyses</div></div>{historyRows.length ? <div className="mt-5"><PerformanceTrend points={historyRows} /><div className="mt-5 grid gap-2 sm:grid-cols-2">{historyRows.slice(0, 4).map(row => <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/10 px-3 py-2" key={row.id}><p className="truncate pr-3 font-mono text-[11px] text-white/65">{row.sql.replace(/\s+/g, " ")}</p><span className="shrink-0 text-xs font-bold text-violet-200">{Math.round((1 - row.optimizedLatencyMs / row.baselineLatencyMs) * 100)}%</span></div>)}</div></div> : <div className="mt-6 rounded-2xl border border-dashed border-white/15 bg-black/10 px-5 py-12 text-center"><History className="mx-auto h-5 w-5 text-white/35" /><p className="mt-3 text-sm font-semibold">No recorded analyses yet</p><p className="mt-1 text-xs text-white/45">Run a query above to start building an evidence-backed optimization history.</p></div>}</div></section>
       </main>
     </div>
   );
 }
+
+function Metric({ icon, label, value, detail, gradient }: { icon: React.ReactNode; label: string; value: string; detail: string; gradient: string }) { return <div className={`rounded-2xl border border-white/15 bg-gradient-to-br ${gradient} p-4 shadow-[0_20px_45px_rgba(0,0,0,.18)]`}><div className="flex items-center justify-between"><span className="text-xs font-semibold text-white/55">{label}</span><span className="text-white/55">{icon}</span></div><p className="mt-4 text-2xl font-extrabold tracking-tight">{value}</p><p className="mt-1 text-xs text-white/45">{detail}</p></div>; }
+function ShapeRow({ label, value }: { label: string; value: string }) { return <div className="border-b border-white/10 pb-3 last:border-0 last:pb-0"><p className="text-[10px] font-bold uppercase tracking-[0.17em] text-white/40">{label}</p><p className="mt-1.5 text-sm leading-5 text-white/75">{value}</p></div>; }

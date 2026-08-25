@@ -1,0 +1,6 @@
+[
+  {"tables":1,"joins":0,"filter":0,"sortOrAggregate":0,"nested":0,"estimatedCost":42},
+  {"tables":2,"joins":1,"filter":1,"sortOrAggregate":0,"nested":0,"estimatedCost":188},
+  {"tables":3,"joins":2,"filter":1,"sortOrAggregate":1,"nested":0,"estimatedCost":510},
+  {"tables":4,"joins":4,"filter":1,"sortOrAggregate":1,"nested":1,"estimatedCost":1210}
+]
