@@ -14,3 +14,4 @@
 - [x] Surface explicit expensive-operator findings from the estimated plan in the API and dashboard.
 - [x] Clarify estimated-versus-measured benchmark mode throughout the analysis response and documentation.
 - [x] Extend automated tests across recommendation findings, persisted history fallback behavior, and analysis API user flow.
+- [x] Replace the current marketing-style landing layout with a distinct operational query-console page template while preserving all QueryLens actions and results.
