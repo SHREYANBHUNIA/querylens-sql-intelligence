@@ -1,11 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PlanGraph } from "@/components/PlanGraph";
 import { PerformanceTrend } from "@/components/PerformanceTrend";
 import { trpc } from "@/lib/trpc";
 import type { QueryLensAnalysis } from "../../../server/querylensAnalysis";
 import { Activity, AlertTriangle, BarChart3, BookOpen, Bot, ChevronRight, CircleDot, ClipboardList, Code2, Database, FileSearch, Gauge, History, LayoutDashboard, Loader2, Network, Play, Plus, Search, Settings2, ShieldCheck, Sparkles, Table2, WandSparkles } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 const starterQuery = `SELECT o.id, o.created_at, c.email, p.status
@@ -25,6 +26,8 @@ const severityStyle = {
 export default function Home() {
   const [sql, setSql] = useState(starterQuery);
   const [analysis, setAnalysis] = useState<QueryLensAnalysis>();
+  const [docsOpen, setDocsOpen] = useState(false);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
   const utils = trpc.useUtils();
   const analyzeMutation = trpc.queryLens.analyze.useMutation({
     onSuccess: result => {
@@ -37,12 +40,18 @@ export default function Home() {
   const history = trpc.queryLens.history.useQuery({ limit: 24 });
   const historyRows = history.data ?? [];
   const runAnalysis = () => analyzeMutation.mutate({ sql });
+  const startNewAnalysis = () => {
+    setSql("");
+    setAnalysis(undefined);
+    toast.message("New analysis ready", { description: "The workspace was cleared and is ready for a read-only PostgreSQL query." });
+    window.setTimeout(() => editorRef.current?.focus(), 0);
+  };
 
   return (
     <div className="min-h-screen bg-[#f4f6fa] text-slate-950">
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-5 shadow-[0_1px_0_rgba(15,23,42,.02)]">
         <div className="flex items-center gap-4"><div className="grid h-9 w-9 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-300"><Search className="h-4 w-4" /></div><div className="border-r border-slate-200 pr-4"><p className="font-bold tracking-tight">QueryLens</p><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Performance console</p></div><div className="hidden items-center gap-2 text-sm text-slate-500 md:flex"><span className="font-medium text-slate-800">Workspace</span><ChevronRight className="h-3.5 w-3.5" /><span>Query analysis</span></div></div>
-        <div className="flex items-center gap-2"><Badge variant="outline" className="hidden border-emerald-200 bg-emerald-50 text-emerald-700 sm:flex"><span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />Engine online</Badge><Button variant="outline" size="sm" className="border-slate-200 text-slate-600"><BookOpen className="mr-2 h-3.5 w-3.5" />Documentation</Button><Button size="sm" className="bg-slate-950 text-white hover:bg-slate-800" onClick={() => { setSql(starterQuery); setAnalysis(undefined); }}><Plus className="mr-1.5 h-3.5 w-3.5" />New analysis</Button></div>
+        <div className="flex items-center gap-2"><Badge variant="outline" className="hidden border-emerald-200 bg-emerald-50 text-emerald-700 sm:flex"><span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />Engine online</Badge><Button variant="outline" size="sm" className="border-slate-200 text-slate-600" onClick={() => setDocsOpen(true)}><BookOpen className="mr-2 h-3.5 w-3.5" />Documentation</Button><Button size="sm" className="bg-slate-950 text-white hover:bg-slate-800" onClick={startNewAnalysis}><Plus className="mr-1.5 h-3.5 w-3.5" />New analysis</Button></div>
       </header>
 
       <div className="flex min-h-[calc(100vh-4rem)]">
@@ -56,7 +65,7 @@ export default function Home() {
               <section className="space-y-5">
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3"><div className="flex items-center gap-3"><div className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-700"><Code2 className="h-4 w-4" /></div><div><p className="text-sm font-bold text-slate-900">Untitled analysis</p><p className="text-xs text-slate-400">Draft query · auto-normalized on run</p></div></div><div className="flex items-center gap-2"><Badge variant="outline" className="border-slate-200 bg-slate-50 font-mono text-[10px] text-slate-600">PostgreSQL</Badge><Badge variant="outline" className="border-slate-200 bg-slate-50 font-mono text-[10px] text-slate-600">Estimated mode</Badge></div></div>
-                  <div className="bg-slate-950 p-3"><textarea value={sql} onChange={event => setSql(event.target.value)} spellCheck={false} aria-label="SQL query input" className="font-mono min-h-[300px] w-full resize-y rounded-xl border border-slate-800 bg-slate-950 p-4 text-[13px] leading-6 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/15" /></div>
+                  <div className="bg-slate-950 p-3"><textarea ref={editorRef} value={sql} onChange={event => setSql(event.target.value)} spellCheck={false} aria-label="SQL query input" className="font-mono min-h-[300px] w-full resize-y rounded-xl border border-slate-800 bg-slate-950 p-4 text-[13px] leading-6 text-slate-100 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/15" /></div>
                   <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-2 text-xs text-slate-500"><FileSearch className="h-4 w-4 text-indigo-600" /> Parses SELECT, WITH, and EXPLAIN statements only.</div><div className="flex gap-2"><Button variant="outline" className="border-slate-200 text-slate-600" onClick={() => { setSql(starterQuery); setAnalysis(undefined); }}>Reset</Button><Button onClick={runAnalysis} disabled={analyzeMutation.isPending} className="bg-indigo-600 font-bold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700">{analyzeMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4 fill-current" />}Run diagnosis</Button></div></div>
                 </div>
 
@@ -74,6 +83,14 @@ export default function Home() {
           </div>
         </main>
       </div>
+      <Dialog open={docsOpen} onOpenChange={setDocsOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-slate-200 bg-white text-slate-900 sm:max-w-2xl">
+          <DialogHeader><div className="mb-1 grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-white"><BookOpen className="h-5 w-5" /></div><DialogTitle className="text-2xl tracking-tight">Using QueryLens</DialogTitle><DialogDescription className="leading-6 text-slate-500">QueryLens analyzes read-only PostgreSQL query shape without running your data. It produces an estimated plan and evidence-oriented next steps.</DialogDescription></DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-3"><DocStep number="01" title="Paste a query" detail="Use SELECT, WITH, or EXPLAIN statements. Mutation statements are intentionally rejected." /><DocStep number="02" title="Run diagnosis" detail="The analyzer normalizes SQL, estimates operator cost, and flags joins, predicates, and plan risk." /><DocStep number="03" title="Validate safely" detail="Treat recommendations as a starting point; confirm changes with EXPLAIN (ANALYZE, BUFFERS) on a live target." /></div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"><span className="font-bold">Benchmark note.</span> Before/after timings in this workspace are estimates. They are not measurements from your production database.</div>
+          <DialogFooter><Button variant="outline" className="border-slate-200" onClick={() => setDocsOpen(false)}>Close</Button><Button className="bg-indigo-600 text-white hover:bg-indigo-700" onClick={() => { setSql(starterQuery); setAnalysis(undefined); setDocsOpen(false); window.setTimeout(() => editorRef.current?.focus(), 0); toast.message("Starter query loaded"); }}>Load starter query</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -93,3 +110,4 @@ function ContextRow({ icon, label, value }: { icon: React.ReactNode; label: stri
 function Metric({ label, value, detail, icon, tone }: { label: string; value: string; detail: string; icon: React.ReactNode; tone: "indigo" | "slate" | "emerald" | "amber" }) { const tones = { indigo: "bg-indigo-50 text-indigo-700", slate: "bg-slate-100 text-slate-700", emerald: "bg-emerald-50 text-emerald-700", amber: "bg-amber-50 text-amber-700" }; return <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs font-semibold text-slate-500">{label}</p><span className={`grid h-7 w-7 place-items-center rounded-lg ${tones[tone]}`}>{icon}</span></div><p className="mt-4 text-2xl font-extrabold tracking-tight text-slate-900">{value}</p><p className="mt-1 text-xs text-slate-400">{detail}</p></div>; }
 function PanelTitle({ kicker, title, value }: { kicker: string; title: string; value: string }) { return <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{kicker}</p><h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">{title}</h2></div><Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600">{value}</Badge></div>; }
 function MiniInspect({ icon, title, detail }: { icon: React.ReactNode; title: string; detail: string }) { return <div className="flex gap-3"><span className="mt-0.5 text-indigo-600">{icon}</span><div><p className="text-sm font-bold text-slate-800">{title}</p><p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p></div></div>; }
+function DocStep({ number, title, detail }: { number: string; title: string; detail: string }) { return <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><span className="text-xs font-extrabold tracking-[0.15em] text-indigo-600">{number}</span><p className="mt-3 text-sm font-bold text-slate-800">{title}</p><p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p></div>; }
