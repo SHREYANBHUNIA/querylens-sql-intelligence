@@ -19,4 +19,4 @@
 - [x] Make the Documentation control open useful in-app guidance for running and interpreting a query diagnosis.
 - [x] Fix duplicate React keys in the expensive-operator findings list and cover repeated finding titles.
 - [x] Create a private GitHub repository and push the current validated QueryLens source for external deployment.
-- [ ] Rewrite all QueryLens Git commit authors as CSE - 148 - SHREYAN BHUNIA using shreyan.bhunia.k@gmail.com and update the private GitHub history.
+- [x] Rewrite all QueryLens Git commit authors as CSE - 148 - SHREYAN BHUNIA using shreyan.bhunia.k@gmail.com and update the private GitHub history.
