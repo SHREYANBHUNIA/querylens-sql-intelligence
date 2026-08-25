@@ -17,3 +17,4 @@
 - [x] Replace the current marketing-style landing layout with a distinct operational query-console page template while preserving all QueryLens actions and results.
 - [x] Make the New analysis control reliably reset the current workspace and show confirmation feedback.
 - [x] Make the Documentation control open useful in-app guidance for running and interpreting a query diagnosis.
+- [x] Fix duplicate React keys in the expensive-operator findings list and cover repeated finding titles.

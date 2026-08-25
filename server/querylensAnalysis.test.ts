@@ -20,4 +20,11 @@ describe("QueryLens SQL validation", () => {
     expect(result.recommendations.some(item => item.title.includes("Index predicate"))).toBe(true);
     expect(result.operatorFindings.some(item => item.title.includes("Sequential scan"))).toBe(true);
   });
+
+  it("assigns distinct priorities when multiple plan nodes create the same finding title", async () => {
+    const result = await analyzeSql("SELECT * FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.status = 'completed'");
+    const priorities = result.operatorFindings.map(item => item.priority);
+
+    expect(new Set(priorities).size).toBe(priorities.length);
+  });
 });

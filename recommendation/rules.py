@@ -42,12 +42,13 @@ def analyze_expensive_operators(plan: dict[str, Any]) -> list[dict[str, Any]]:
     ranked_nodes = sorted(plan["nodes"], key=lambda node: node["cost"], reverse=True)
     for node in ranked_nodes:
         node_type = node["nodeType"]
+        priority = len(findings) + 1
         if node_type == "Seq Scan":
-            findings.append(_recommendation(1, "critical", "Sequential scan dominates the plan", f"{node['detail']} contributes an estimated cost of {node['cost']:,.1f} across {node['rows']:,} rows.", "Validate a selective predicate index and verify its selectivity with EXPLAIN (ANALYZE, BUFFERS).", 38))
+            findings.append(_recommendation(priority, "critical", "Sequential scan dominates the plan", f"{node['detail']} contributes an estimated cost of {node['cost']:,.1f} across {node['rows']:,} rows.", "Validate a selective predicate index and verify its selectivity with EXPLAIN (ANALYZE, BUFFERS).", 38))
         elif node_type == "Nested Loop":
-            findings.append(_recommendation(2, "critical", "Nested-loop join may multiply work", f"The nested loop carries an estimated cost of {node['cost']:,.1f}. Large outer relations can repeatedly probe the inner relation.", "Index both join keys and compare a hash join using live PostgreSQL statistics.", 34))
+            findings.append(_recommendation(priority, "critical", "Nested-loop join may multiply work", f"The nested loop carries an estimated cost of {node['cost']:,.1f}. Large outer relations can repeatedly probe the inner relation.", "Index both join keys and compare a hash join using live PostgreSQL statistics.", 34))
         elif node_type == "Sort":
-            findings.append(_recommendation(3, "warning", "Sort is a material cost center", f"The sort operator accounts for an estimated cost of {node['cost']:,.1f}.", "Use a composite index aligned with filtering and ORDER BY fields, or constrain the result with LIMIT.", 20))
+            findings.append(_recommendation(priority, "warning", "Sort is a material cost center", f"The sort operator accounts for an estimated cost of {node['cost']:,.1f}.", "Use a composite index aligned with filtering and ORDER BY fields, or constrain the result with LIMIT.", 20))
         elif node_type == "HashAggregate":
-            findings.append(_recommendation(4, "warning", "Aggregation may pressure working memory", f"The aggregate operator has an estimated cost of {node['cost']:,.1f}.", "Reduce input cardinality before grouping and inspect work_mem and spill behavior on a live target.", 16))
+            findings.append(_recommendation(priority, "warning", "Aggregation may pressure working memory", f"The aggregate operator has an estimated cost of {node['cost']:,.1f}.", "Reduce input cardinality before grouping and inspect work_mem and spill behavior on a live target.", 16))
     return findings[:3] or [_recommendation(1, "info", "No dominant expensive operator detected", "The estimated operator tree does not show a high-risk scan, loop, sort, or aggregate node.", "Confirm the estimate against EXPLAIN (ANALYZE, BUFFERS) before changing production SQL.", 8)]
